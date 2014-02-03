@@ -17,10 +17,8 @@ from smartslib import CLASSES
 import os, sys, shlex
 from subprocess import PIPE, STDOUT, Popen
 import time
-#COMMANDS = ['extra', 'extension', 'stuff', 'errors',
-#                  'email', 'foobar', 'foo']
 
-COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", )
+COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", "help")
 
 
 RE_SPACE = re.compile('.*\s+$', re.M)
@@ -271,7 +269,43 @@ class Completer(object):
         def complete_shutdown(self, args):
                 """docstring for shutdown"""
                 return ["Not Supported Yet", ""]
-        
+
+	def complete_help(self):
+		"""docstring for help"""
+		print r'''
+		    attach <domain>
+		    clear <class::instance::event>
+		    create <class>::<instance>
+		    consistencyUpdate
+		    correlate
+		    delete <class>::<instance>
+		    detach
+		    execute <program> [<arg1> ...]
+		    findInstances <class-regexp>::<instance-regexp>
+		    get <class>::<instance>[::<property>]
+		    getClasses
+		    getEvents <class>
+		    getEventDescription <class>::<event>
+		    getInstances [<class>]
+		    getModels
+		    getOperations <class>
+		    getPrograms
+		    getProperties <class>
+		    getThreads
+		    insert <class>::<instance>::<property> <value>
+		    invoke <class>::<instance> <op> [<arg1> ...]
+		    loadModel <model>
+		    loadProgram <program>
+		    notify <class::instance::event>
+		    ping
+		    put <class>::<instance>::<property> <value1> [<value2> ...]
+		    quit
+		    remove <class>::<instance>::<property> <value>
+		    restore <file>
+		    shutdown
+		    status
+		    save <file> [<class>]
+		'''
 
         def complete_status(self, args):
                 """docstring for status"""
