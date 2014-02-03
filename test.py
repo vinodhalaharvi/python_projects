@@ -40,17 +40,24 @@ def _run(cmd, domains):
 	if not domains:
 		print "Not domains attached .." 
 		print "Attach a domain first using 'attach' command"
-
-	prefix = "dmctl -s %s " % (" ".join(domains))
-	suffix = " | tee"
-	cmd = prefix + cmd  + suffix
-	os.system(cmd)
+	
+	
+	for domain in domains:
+		prefix = "dmctl -s %s " % domain
+		suffix = " | tee"
+		command = prefix + cmd  + suffix
+		prefix  = ""
+		if len(domains) > 1:
+			print 
+			print domain + '::' + command
+		os.system(command)
+		command = ""
 
 
 class Completer(object):
 	def __init__(self):
 		"""docstring for __init__"""
-		self.prefix = "dmctl -s TEST92-SA "
+		self.prefix = "dmctl -s "
 
         def _listdir(self, root):
             "List directory 'root' appending the path separator to subdirs."
@@ -104,7 +111,10 @@ class Completer(object):
 
         def complete_clear(self, args):
                 """docstring for clear"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["clear <class::instance::event>", '']
         
 
         def complete_create(self, args):
@@ -203,7 +213,7 @@ class Completer(object):
 
         def complete_getThreads(self, args):
                 """docstring for getThreads"""
-                return ["Not Supported Yet", ""]
+                return ["getThreads", ""]
         
 
         def complete_insert(self, args):
@@ -228,8 +238,10 @@ class Completer(object):
 
         def complete_notify(self, args):
                 """docstring for notify"""
-                return ["Not Supported Yet", ""]
-        
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["clear <class::instance::event>", '']
 
         def complete_ping(self, args):
                 """docstring for ping"""
@@ -268,7 +280,12 @@ class Completer(object):
 
         def complete_save(self, args):
                 """docstring for save"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return ["save <file> [<class>]", '']
+		elif len(args) == 2:
+			return [c + ' ' for c in CLASSES if args[-1] in c]
+		else:
+			return ["save <file> [<class>]", '']
         
 
         def complete_extra(self, args):
@@ -301,7 +318,7 @@ class Completer(object):
 
 if __name__ == '__main__':
 	comp = Completer()
-	exclude_list = ("clear", )
+	exclude_list = ("", )
 	readline.set_completer_delims(' \t\n;')
 	readline.parse_and_bind("tab: complete")
 	readline.parse_and_bind("enter: complete")
@@ -313,6 +330,14 @@ if __name__ == '__main__':
 		if line:
 			cmd = line.split()[0]
 		else:
+			continue
+		if cmd == 'attach':
+			domains += line.split()[1:]
+			print domains
+			continue
+		if cmd == 'detach':
+			domains  = [d for d in domains if d != line.split()[-1]]
+			print domains
 			continue
 		if cmd and (cmd not in COMMANDS or cmd in exclude_list):
 			os.system(line)
