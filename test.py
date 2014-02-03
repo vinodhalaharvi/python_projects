@@ -10,6 +10,8 @@
 # not reflect on the original authors' reputations. This is *not* authorization
 # to copy or distribute this software to others!
 
+import signal
+import sys
 import os
 import re
 import readline
@@ -132,7 +134,10 @@ class Completer(object):
 
         def complete_delete(self, args):
                 """docstring for delete"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["delete <class>::<instance>", ""]
         
 
         def complete_detach(self, args):
@@ -350,6 +355,12 @@ class Completer(object):
             results = [c + ' ' for c in COMMANDS if c.startswith(cmd)] + [None]
             return results[state]
 
+
+def signal_handler(signal, frame):
+	# do nothing on SIGINT signal
+	print "Press Ctrl-d to quit"
+
+
 if __name__ == '__main__':
 	comp = Completer()
 	exclude_list = ("", )
@@ -359,6 +370,7 @@ if __name__ == '__main__':
 	readline.parse_and_bind('set editing-mode vi')
 	readline.set_completer(comp.complete)
 	domains = ['TEST92-SA',]
+	signal.signal(signal.SIGINT, signal_handler)
 	while True:
 		line = raw_input('>> ')
 		if line:
