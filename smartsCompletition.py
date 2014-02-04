@@ -10,6 +10,8 @@
 # not reflect on the original authors' reputations. This is *not* authorization
 # to copy or distribute this software to others!
 
+import signal
+import sys
 import os
 import re
 import readline
@@ -17,25 +19,45 @@ from smartslib import CLASSES
 import os, sys, shlex
 from subprocess import PIPE, STDOUT, Popen
 import time
-#COMMANDS = ['extra', 'extension', 'stuff', 'errors',
-#                  'email', 'foobar', 'foo']
 
-COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", )
+COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", "help")
 
 
 RE_SPACE = re.compile('.*\s+$', re.M)
 
-def _run(cmd):
-	os.system(cmd)
-	return
-	proc = Popen(shlex.split(cmd), stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-	return proc.communicate()
+
+
+def _run(cmd, domains):
+	if 'brcontrol' in cmd:
+		os.system(cmd)
+		return 
+
+	if 'attach' == cmd.split()[0]:
+		domains += cmd.split()[1:]
+		print "Attached domains: ", domains
+		return 
+
+	if not domains:
+		print "Not domains attached .." 
+		print "Attach a domain first using 'attach' command"
+	
+	
+	for domain in domains:
+		prefix = "dmctl -s %s " % domain
+		suffix = " | tee"
+		command = prefix + cmd  + suffix
+		prefix  = ""
+		if len(domains) > 1:
+			print 
+			print domain + '::' + command
+		os.system(command)
+		command = ""
 
 
 class Completer(object):
 	def __init__(self):
 		"""docstring for __init__"""
-		self.prefix = "dmctl -s TEST92-SA "
+		self.prefix = "dmctl -s "
 
         def _listdir(self, root):
             "List directory 'root' appending the path separator to subdirs."
@@ -53,15 +75,6 @@ class Completer(object):
 			cmd = self.prefix.split() + list(args)
 		else:
 			cmd = args
-		print 
-		print cmd
-		if 'brcontrol' in cmd:
-			proc = Popen(args, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-			return proc.communicate()
-		else:
-			proc = Popen(cmd, stdout=PIPE, stdin=PIPE, stderr=STDOUT)
-			return proc.communicate()
-	#return ["test" + ' ']
 
         def _complete_path(self, path=None):
             "Perform completion of filesystem path."
@@ -98,7 +111,10 @@ class Completer(object):
 
         def complete_clear(self, args):
                 """docstring for clear"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["clear <class::instance::event>", '']
         
 
         def complete_create(self, args):
@@ -118,7 +134,10 @@ class Completer(object):
 
         def complete_delete(self, args):
                 """docstring for delete"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["delete <class>::<instance>", ""]
         
 
         def complete_detach(self, args):
@@ -135,11 +154,6 @@ class Completer(object):
                 """docstring for findInstances"""
 		if len(args) == 1:
 			return [c + ' ' for c in CLASSES if args[0] in c]
-		elif len(args) == 2:
-			cls_reg, inst_reg = args
-			for item in self._run("findInstances", "%s::.*%s.*" % (cls_reg, inst_reg)):
-				if item:
-					print item
 		else:
 			return ["Usage: findInstances <class-regexp>::<instance-regexp>", "",]
 
@@ -148,16 +162,6 @@ class Completer(object):
                 """docstring for get"""
                 if len(args) == 1:
                         return [c + ' ' for c in CLASSES if args[0] in c]
-		elif len(args) == 2:
-			cls, inst  = args
-			for item in self._run("get", "%s::%s" % (cls, inst)):
-				if item:
-					print item
-		elif len(args) == 3:
-			cls, inst, prop  = args
-			for item in self._run("get", "%s::%s::%s" % (cls, inst, prop)):
-				if item:
-					print item
 		else:
 			return ['Usage: get <class> <instance> [<property>]', '']
 
@@ -172,11 +176,6 @@ class Completer(object):
                 """docstring for getEvents"""
                 if len(args) == 1:
                         return [c + ' ' for c in CLASSES if args[0] in c]
-                elif len(args) == 2:
-			_class = args[0].strip()
-			for item in self._run("getEvents", _class):
-				if item:
-					print item
 		else:
 			return ["Usage: getEvents [<class>]", '']
         
@@ -190,44 +189,24 @@ class Completer(object):
                 """docstring for getInstances"""
                 if len(args) == 1:
                         return [c + ' ' for c in CLASSES if args[0] in c]
-                elif len(args) == 2:
-			_class = args[0].strip()
-			for item in self._run("getInstances", _class):
-				if item:
-					print item
 		else:
 			return ["Usage: getInstances [<class>]", '']
 
         def complete_getModels(self, args):
                 """docstring for getModels"""
-                if len(args) == 1:
-			for item in  self._run('getModels'):
-				if item:
-					print item
-		else:
-			return ['Usage: getModels', '']
+		return ['Usage: getModels', '']
 
         def complete_getOperations(self, args):
                 """docstring for getOperations"""
                 if len(args) == 1:
                         return [c + ' ' for c in CLASSES if args[0] in c]
-		elif len(args) == 2:
-			_class = args[0].strip()
-			for item in self._run("getOperations", _class):
-				if item:
-					print item
 		else:
 			return ['Usage: getOperations <class>', '']
         
 
         def complete_getPrograms(self, args):
                 """docstring for getPrograms"""
-                if len(args) == 1:
-			for item in  self._run('getPrograms'):
-				if item:
-					print item
-		else:
-			return ['Usage: getPrograms', '']
+		return ['Usage: getPrograms', '']
         
 
         def complete_getProperties(self, args):
@@ -237,7 +216,7 @@ class Completer(object):
 
         def complete_getThreads(self, args):
                 """docstring for getThreads"""
-                return ["Not Supported Yet", ""]
+                return ["getThreads", ""]
         
 
         def complete_insert(self, args):
@@ -262,17 +241,14 @@ class Completer(object):
 
         def complete_notify(self, args):
                 """docstring for notify"""
-                return ["Not Supported Yet", ""]
-        
+		if len(args) == 1:
+			return [c + ' ' for c in CLASSES if args[0] in c]
+		else:
+			return ["clear <class::instance::event>", '']
 
         def complete_ping(self, args):
                 """docstring for ping"""
-		if len(args) == 1:
-			for item in  self._run('ping'):
-				if item:
-					print item
-		else:
-			return ['Usage: ping', '']
+		return ['Usage: ping', '']
         
 
         def complete_put(self, args):
@@ -298,21 +274,57 @@ class Completer(object):
         def complete_shutdown(self, args):
                 """docstring for shutdown"""
                 return ["Not Supported Yet", ""]
-        
+
+	def complete_help(self):
+		"""docstring for help"""
+		print r'''
+		    attach <domain>
+		    clear <class::instance::event>
+		    create <class>::<instance>
+		    consistencyUpdate
+		    correlate
+		    delete <class>::<instance>
+		    detach
+		    execute <program> [<arg1> ...]
+		    findInstances <class-regexp>::<instance-regexp>
+		    get <class>::<instance>[::<property>]
+		    getClasses
+		    getEvents <class>
+		    getEventDescription <class>::<event>
+		    getInstances [<class>]
+		    getModels
+		    getOperations <class>
+		    getPrograms
+		    getProperties <class>
+		    getThreads
+		    insert <class>::<instance>::<property> <value>
+		    invoke <class>::<instance> <op> [<arg1> ...]
+		    loadModel <model>
+		    loadProgram <program>
+		    notify <class::instance::event>
+		    ping
+		    put <class>::<instance>::<property> <value1> [<value2> ...]
+		    quit
+		    remove <class>::<instance>::<property> <value>
+		    restore <file>
+		    shutdown
+		    status
+		    save <file> [<class>]
+		'''
 
         def complete_status(self, args):
                 """docstring for status"""
-                if len(args) == 1:
-			for item in  self._run('status'):
-				if item:
-					print item
-		else:
-			return ['status', '']
+		return ['status', '']
         
 
         def complete_save(self, args):
                 """docstring for save"""
-                return ["Not Supported Yet", ""]
+		if len(args) == 1:
+			return ["save <file> [<class>]", '']
+		elif len(args) == 2:
+			return [c + ' ' for c in CLASSES if args[-1] in c]
+		else:
+			return ["save <file> [<class>]", '']
         
 
         def complete_extra(self, args):
@@ -343,17 +355,38 @@ class Completer(object):
             results = [c + ' ' for c in COMMANDS if c.startswith(cmd)] + [None]
             return results[state]
 
-comp = Completer()
-# we want to treat '/' as part of a word, so override the delimiters
-readline.set_completer_delims(' \t\n;')
-readline.parse_and_bind("tab: complete")
-readline.parse_and_bind('set editing-mode vi')
-#readline.read_history_file()
-#readline.write_history_file()
-#readline.set_history_length(1000)
-readline.set_completer(comp.complete)
-while True:
-	line = raw_input('>> ')
-	if line and  line not in COMMANDS:
-		os.system(line)
-		continue
+
+def signal_handler(signal, frame):
+	# do nothing on SIGINT signal
+	print "Press Ctrl-d to quit"
+
+
+if __name__ == '__main__':
+	comp = Completer()
+	exclude_list = ("", )
+	readline.set_completer_delims(' \t\n;')
+	readline.parse_and_bind("tab: complete")
+	readline.parse_and_bind("enter: complete")
+	readline.parse_and_bind('set editing-mode vi')
+	readline.set_completer(comp.complete)
+	domains = ['TEST92-SA',]
+	signal.signal(signal.SIGINT, signal_handler)
+	while True:
+		line = raw_input('>> ')
+		if line:
+			cmd = line.split()[0]
+		else:
+			continue
+		if cmd == 'attach':
+			domains += line.split()[1:]
+			print domains
+			continue
+		if cmd == 'detach':
+			domains  = [d for d in domains if d != line.split()[-1]]
+			print domains
+			continue
+		if cmd and (cmd not in COMMANDS or cmd in exclude_list):
+			os.system(line)
+		else:
+			_run(line, domains)
+
