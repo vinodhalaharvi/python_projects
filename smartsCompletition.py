@@ -20,14 +20,23 @@ import os, sys, shlex
 from subprocess import PIPE, STDOUT, Popen
 import time
 
-COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", "help")
+COMMANDS = ( "attach", "clear", "create", "consistencyUpdate", "correlate", "delete", "detach", "execute", "findInstances", "get", "getClasses", "getEvents", "getEventDescription", "getInstances", "getModels", "getOperations", "getPrograms", "getProperties", "getThreads", "insert", "invoke", "loadModel", "loadProgram", "notify", "ping", "put", "quit", "remove", "restore", "shutdown", "status", "save", "brcontrol", "help", "findI", "sm_ems", "notify", "shortcut",)
+
+SM_EMS = ("sm_ems", "notify", )
 
 
 RE_SPACE = re.compile('.*\s+$', re.M)
 
+def _run(args):
+        """docstring for _run"""
+        try:
+                return   Popen(args, stdin=PIPE, shell=True,
+                                stdout=PIPE, stderr=STDOUT).communicate()[0]
+        except:
+                raise
 
 
-def _run(cmd, domains):
+def _prun(cmd, domains):
 	if 'brcontrol' in cmd:
 		os.system(cmd)
 		return 
@@ -41,7 +50,40 @@ def _run(cmd, domains):
 		print "Not domains attached .." 
 		print "Attach a domain first using 'attach' command"
 	
+	result = []	
+	for domain in domains:
+		prefix = "dmctl -s %s " % domain
+		if 'less' in cmd:
+			suffix = " | tee | less"
+		else:
+			suffix = " | tee"
+		command = prefix + cmd  + suffix
+		prefix  = ""
+		if len(domains) > 1:
+			#print 
+			#print domain + '::' + command
+			result +=  ["\n", domain + '::' + command]
+
+		#os.system(command)
+		result +=  [_run(command),]
+		command = ""
+	return result
+
+def _orun(cmd, domains):
+	if 'brcontrol' in cmd:
+		os.system(cmd)
+		return 
+
+	if 'attach' == cmd.split()[0]:
+		domains += cmd.split()[1:]
+		print "Attached domains: ", domains
+		return 
+
+	if not domains:
+		print "Not domains attached .." 
+		print "Attach a domain first using 'attach' command"
 	
+	result = []	
 	for domain in domains:
 		prefix = "dmctl -s %s " % domain
 		suffix = " | tee"
@@ -106,7 +148,7 @@ class Completer(object):
 
         def complete_attach(self, args):
                 """docstring for attach"""
-                return ["Not Supported Yet", ""]
+                return ["attach <domain>", ""]
         
 
         def complete_clear(self, args):
@@ -119,17 +161,17 @@ class Completer(object):
 
         def complete_create(self, args):
                 """docstring for create"""
-                return ["Not Supported Yet", ""]
+		return ["create <class>::<instance>", ""]
         
 
         def complete_consistencyUpdate(self, args):
                 """docstring for consistencyUpdate"""
-                return ["Not Supported Yet", ""]
+                return ["consistencyUpdate", ""]
         
 
         def complete_correlate(self, args):
                 """docstring for correlate"""
-                return ["Not Supported Yet", ""]
+                return ["correlate", ""]
         
 
         def complete_delete(self, args):
@@ -142,12 +184,12 @@ class Completer(object):
 
         def complete_detach(self, args):
                 """docstring for detach"""
-                return ["Not Supported Yet", ""]
+                return ["detach Domainname", ""]
         
 
         def complete_execute(self, args):
                 """docstring for execute"""
-                return ["Not Supported Yet", ""]
+                return ["execute <program> [<arg1> ...]", ""]
         
 
         def complete_findInstances(self, args):
@@ -182,7 +224,7 @@ class Completer(object):
 
         def complete_getEventDescription(self, args):
                 """docstring for getEventDescription"""
-                return ["Not Supported Yet", ""]
+		return ["getEventDescription <class>::<event>", ""]
         
 
         def complete_getInstances(self, args):
@@ -211,32 +253,32 @@ class Completer(object):
 
         def complete_getProperties(self, args):
                 """docstring for getProperties"""
-                return ["Not Supported Yet", ""]
+		return ["Usage: getProperties <class>", ""]
         
 
         def complete_getThreads(self, args):
                 """docstring for getThreads"""
-                return ["getThreads", ""]
+		return ["Usage: getThreads", ""]
         
 
         def complete_insert(self, args):
                 """docstring for insert"""
-                return ["Not Supported Yet", ""]
+		return ["Usage: insert <class>::<instance>::<property> <value>", ""]
         
 
         def complete_invoke(self, args):
                 """docstring for invoke"""
-                return ["Not Supported Yet", ""]
+		return ["Usage: invoke <class>::<instance> <op> [<arg1> ...]", ""]
         
 
         def complete_loadModel(self, args):
                 """docstring for loadModel"""
-                return ["Not Supported Yet", ""]
+		return ["Usage: loadModel <model>", ""]
         
 
         def complete_loadProgram(self, args):
                 """docstring for loadProgram"""
-                return ["Not Supported Yet", ""]
+		return ["Usage: loadProgram <program>", ""]
         
 
         def complete_notify(self, args):
@@ -253,27 +295,27 @@ class Completer(object):
 
         def complete_put(self, args):
                 """docstring for put"""
-                return ["Not Supported Yet", ""]
+		return ["Usage put <class>::<instance>::<property> <value1> [<value2> ...]", ""]
         
 
         def complete_quit(self, args):
                 """docstring for quit"""
-                return ["Not Supported Yet", ""]
+                return ["quit", ""]
         
 
         def complete_remove(self, args):
                 """docstring for remove"""
-                return ["Not Supported Yet", ""]
+		return ["remove <class>::<instance>::<property> <value>", ""]
         
 
         def complete_restore(self, args):
                 """docstring for restore"""
-                return ["Not Supported Yet", ""]
+                return ["restore <file>", ""]
         
 
         def complete_shutdown(self, args):
                 """docstring for shutdown"""
-                return ["Not Supported Yet", ""]
+                return ["shutdown", ""]
 
 	def complete_help(self):
 		"""docstring for help"""
@@ -361,8 +403,16 @@ def signal_handler(signal, frame):
 	print "Press Ctrl-d to quit"
 
 
+def line_shortcut(line):
+	"""docstring for line_shortcut"""
+	line = line.replace(line.split()[0], shortcuts[line.split()[0]])
+	line += " "
+	return line
+
+
 if __name__ == '__main__':
 	comp = Completer()
+	shortcuts = {}
 	exclude_list = ("", )
 	readline.set_completer_delims(' \t\n;')
 	readline.parse_and_bind("tab: complete")
@@ -373,20 +423,54 @@ if __name__ == '__main__':
 	signal.signal(signal.SIGINT, signal_handler)
 	while True:
 		line = raw_input('>> ')
+		#handle shortcuts and preprocessing
+		if line and line.split()[0] in shortcuts:
+			line = line_shortcut(line)
+		elif line and line.split()[0] == 'sm_ems':
+			line = line_sm_ems(line)
+
+
 		if line:
 			cmd = line.split()[0]
 		else:
 			continue
+
+		
 		if cmd == 'attach':
 			domains += line.split()[1:]
 			print domains
 			continue
+
 		if cmd == 'detach':
 			domains  = [d for d in domains if d != line.split()[-1]]
 			print domains
 			continue
+
 		if cmd and (cmd not in COMMANDS or cmd in exclude_list):
-			os.system(line)
+			os.system(line) # OS commands 
+
 		else:
-			_run(line, domains)
+			if line.startswith('shortcut'):
+				try:
+					shortcuts.update({line.split()[1] : " ".join(line.split()[2:])})
+					print shortcuts
+					continue
+				except:
+					raise
+			elif line.startswith('findI '):
+				try:
+					pat = line.split()[1]
+				except:
+					continue 
+				result = _prun("findInstances ICS_Notification::.*%s.*" % pat, domains)
+			else:
+				#_orun(line, domains)
+				result = _prun(line, domains)
+
+
+			if result:
+				for line in result: # dmctl commands
+					if line:
+						print line,
+			print
 
