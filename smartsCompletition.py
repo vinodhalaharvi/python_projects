@@ -405,7 +405,15 @@ def signal_handler(signal, frame):
 
 def line_shortcut(line):
 	"""docstring for line_shortcut"""
-	line = line.replace(line.split()[0], shortcuts[line.split()[0]])
+	c = line.split()[0]
+	args = False
+	if len(line.split()) > 1:
+		args = line.split()[1:]
+	if args:
+		line = shortcuts[c] % tuple(args)
+	else:
+		line = shortcuts[c]
+	print line
 	line += " "
 	return line
 
